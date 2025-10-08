@@ -37,12 +37,6 @@
 
 </p>
 
-<p align="left">
-	<img src="https://img.shields.io/github/license/pankil-soni/mern-chat-app?style=flat&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
-	<img src="https://img.shields.io/github/last-commit/pankil-soni/mern-chat-app?style=flat&logo=git&logoColor=white&color=0080ff" alt="last-commit">
-	<img src="https://img.shields.io/github/languages/top/pankil-soni/mern-chat-app?style=flat&color=0080ff" alt="repo-top-language">
-	<img src="https://img.shields.io/github/languages/count/pankil-soni/mern-chat-app?style=flat&color=0080ff" alt="repo-language-count">
-</p>
 <p align="left">Built with the tools and technologies:</p>
 <p align="left">
 	
@@ -660,7 +654,7 @@ Install mern-chat-app using one of the following methods:
 
 1. Clone the mern-chat-app repository:
 	```
-	git clone https://github.com/pankil-soni/mern-chat-app
+	git clone GitHub_Repo_URL
 	```
 
 2. Navigate to the project directory:
@@ -720,57 +714,19 @@ Run mern-chat-app using the following command:
 
 ---
 
-## 🔰 Contributing
-
-- **💬 [Join the Discussions](https://github.com/pankil-soni/mern-chat-app/discussions)**: Share your insights, provide feedback, or ask questions.
-- **🐛 [Report Issues](https://github.com/pankil-soni/mern-chat-app/issues)**: Submit bugs found or log feature requests for the `mern-chat-app` project.
-- **💡 [Submit Pull Requests](https://github.com/pankil-soni/mern-chat-app/blob/main/CONTRIBUTING.md)**: Review open PRs, and submit your own PRs.
-
-<details closed>
-<summary>Contributing Guidelines</summary>
-
-1. **Fork the Repository**: Start by forking the project repository to your github account.
-2. **Clone Locally**: Clone the forked repository to your local machine using a git client.
-   ```sh
-   git clone https://github.com/pankil-soni/mern-chat-app
-   ```
-3. **Create a New Branch**: Always work on a new branch, giving it a descriptive name.
-   ```sh
-   git checkout -b new-feature-x
-   ```
-4. **Make Your Changes**: Develop and test your changes locally.
-5. **Commit Your Changes**: Commit with a clear message describing your updates.
-   ```sh
-   git commit -m 'Implemented new feature x.'
-   ```
-6. **Push to github**: Push the changes to your forked repository.
-   ```sh
-   git push origin new-feature-x
-   ```
-7. **Submit a Pull Request**: Create a PR against the original project repository. Clearly describe the changes and their motivations.
-8. **Review**: Once your PR is reviewed and approved, it will be merged into the main branch. Congratulations on your contribution!
-</details>
-
-<details closed>
-<summary>Contributor Graph</summary>
-<br>
-<p align="left">
-   <a href="https://github.com{/pankil-soni/mern-chat-app/}graphs/contributors">
-      <img src="https://contrib.rocks/image?repo=pankil-soni/mern-chat-app">
-   </a>
-</p>
-</details>
-
 ## 🎗 License
 
-This project is licensed under the MIT License and Free to use.
+This project is licensed under the MIT License and Owned by Prince Bhatt
 
-## 📝 About the Author
-This project was developed by  me (**Pankil Soni**). Feel free to reach out with any questions or suggestions.
-- gmail - pmsoni2016@gmail.com
-- kaggle - https://www.kaggle.com/pankilsoni
-- LinkedIn - https://www.linkedin.com/in/pankil-soni-5a0541170/
+### 👨‍💻 Developer
+Prince Bhatt
 
-## 🙌 Acknowledgments
+📧 Email: princebhatt316@gmail.com
 
-- List any resources, contributors, inspiration, etc. here.
+🌐 Portfolio: [Prince Bhatt](https://princebhatt03.github.io/Portfolio)
+
+💼 GitHub: [princebhatt03](https://github.com/princebhatt03)
+
+💬 LinkedIn: [Prince Bhatt](https://www.linkedin.com/in/prince-bhatt-0958a725a/)
+
+✨Thank you for connecting...
