@@ -1,51 +1,48 @@
-const Message = require("../Models/Message.js");
-const Conversation = require("../Models/Conversation.js");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const imageupload = require("../config/imageupload.js");
-const dotenv = require("dotenv");
-dotenv.config({ path: "./.env" });
+const Message = require('../Models/Message.js');
+const Conversation = require('../Models/Conversation.js');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const imageupload = require('../config/imageupload.js');
+const dotenv = require('dotenv');
+dotenv.config({ path: './.env' });
+
 const {
   AWS_BUCKET_NAME,
   AWS_SECRET,
   AWS_ACCESS_KEY,
-} = require("../secrets.js");
-const { S3Client } = require("@aws-sdk/client-s3");
-const { createPresignedPost } = require("@aws-sdk/s3-presigned-post");
+} = require('../secrets.js');
 
+const { S3Client } = require('@aws-sdk/client-s3');
+const { createPresignedPost } = require('@aws-sdk/s3-presigned-post');
+
+// Initialize Google Generative AI with updated model
 const configuration = new GoogleGenerativeAI(process.env.GENERATIVE_API_KEY);
-const modelId = "gemini-1.5-flash";
+const modelId = 'gemini-2.5-flash'; // Updated model
 const model = configuration.getGenerativeModel({ model: modelId });
 
+// SEND MESSAGE (User to User)
 const sendMessage = async (req, res) => {
-  var imageurl = "";
-
-  if (req.file) {
-    imageurl = await imageupload(req.file, false);
-  }
-
   try {
     const { conversationId, sender, text } = req.body;
     if (!conversationId || !sender || !text) {
-      return res.status(400).json({
-        error: "Please fill all the fields",
-      });
+      return res.status(400).json({ error: 'Please fill all the fields' });
+    }
+
+    let imageurl = '';
+    if (req.file) {
+      imageurl = await imageupload(req.file, false);
     }
 
     const conversation = await Conversation.findById(conversationId).populate(
-      "members",
-      "-password"
+      'members',
+      '-password'
     );
 
-    //check if conversation contains bot
-    var isbot = false;
+    // Check if conversation contains a bot
+    const isBot = conversation.members.some(
+      member => member != sender && member.email.includes('bot')
+    );
 
-    conversation.members.forEach((member) => {
-      if (member != sender && member.email.includes("bot")) {
-        isbot = true;
-      }
-    });
-
-    if (!isbot) {
+    if (!isBot) {
       const newMessage = new Message({
         conversationId,
         sender,
@@ -55,18 +52,18 @@ const sendMessage = async (req, res) => {
       });
 
       await newMessage.save();
-      console.log("newMessage saved");
-
       conversation.updatedAt = new Date();
       await conversation.save();
 
-      res.json(newMessage);
+      return res.json(newMessage);
     }
   } catch (error) {
-    res.status(500).send("Internal Server Error");
+    console.error(error.message);
+    return res.status(500).send('Internal Server Error');
   }
 };
 
+// GET ALL MESSAGES
 const allMessage = async (req, res) => {
   try {
     const messages = await Message.find({
@@ -74,90 +71,81 @@ const allMessage = async (req, res) => {
       deletedFrom: { $ne: req.user.id },
     });
 
-    messages.forEach(async (message) => {
-      let isUserAddedToSeenBy = false;
-      message.seenBy.forEach((element) => {
-        if (element.user == req.user.id) {
-          isUserAddedToSeenBy = true;
-        }
-      });
-      if (!isUserAddedToSeenBy) {
+    for (const message of messages) {
+      if (
+        !message.seenBy.some(
+          element => element.user.toString() === req.user.id.toString()
+        )
+      ) {
         message.seenBy.push({ user: req.user.id });
+        await message.save();
       }
-      await message.save();
-    });
+    }
 
-    res.json(messages);
+    return res.json(messages);
   } catch (error) {
     console.error(error.message);
-    res.status(500).send("Internal Server Error");
+    return res.status(500).send('Internal Server Error');
   }
 };
 
+// DELETE MESSAGE
 const deletemesage = async (req, res) => {
-  const msgid = req.body.messageid;
-  const userids = req.body.userids;
+  const { messageid, userids } = req.body;
   try {
-    const message = await Message.findById(msgid);
+    const message = await Message.findById(messageid);
+    if (!message) return res.status(404).json({ error: 'Message not found' });
 
-    userids.forEach(async (userid) => {
-      if (!message.deletedby.includes(userid)) {
-        message.deletedby.push(userid);
+    userids.forEach(userid => {
+      if (!message.deletedFrom.includes(userid)) {
+        message.deletedFrom.push(userid);
       }
     });
+
     await message.save();
-    res.status(200).send("Message deleted successfully");
+    return res.status(200).send('Message deleted successfully');
   } catch (error) {
-    console.log(error.message);
-    res.status(500).send({ error: "Internal Server Error" });
+    console.error(error.message);
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
+// PRESIGNED URL FOR UPLOAD
 const getPresignedUrl = async (req, res) => {
-  const filename = req.query.filename;
-  const filetype = req.query.filetype;
-
-  if (!filename || !filetype) {
+  const { filename, filetype } = req.query;
+  if (!filename || !filetype)
     return res
       .status(400)
-      .json({ error: "Filename and filetype are required" });
-  }
+      .json({ error: 'Filename and filetype are required' });
 
   const validFileTypes = [
-    "image/jpeg",
-    "image/png",
-    "image/jpg",
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/vnd.ms-powerpoint",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    "application/zip",
+    'image/jpeg',
+    'image/png',
+    'image/jpg',
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/zip',
   ];
 
-  if (!validFileTypes.includes(filetype)) {
-    return res.status(400).json({ error: "Invalid file type" });
-  }
+  if (!validFileTypes.includes(filetype))
+    return res.status(400).json({ error: 'Invalid file type' });
 
-  const userId = req.user.id;
   const s3Client = new S3Client({
-    credentials: {
-      accessKeyId: AWS_ACCESS_KEY,
-      secretAccessKey: AWS_SECRET,
-    },
-    region: "ap-south-1",
+    credentials: { accessKeyId: AWS_ACCESS_KEY, secretAccessKey: AWS_SECRET },
+    region: 'ap-south-1',
   });
 
   try {
     const { url, fields } = await createPresignedPost(s3Client, {
       Bucket: AWS_BUCKET_NAME,
-      Key: `conversa/${userId}/${Math.random()}/${filename}`,
-      Conditions: [["content-length-range", 0, 5 * 1024 * 1024]],
-      Fields: {
-        success_action_status: "201",
-      },
+      Key: `conversa/${req.user.id}/${Math.random()}/${filename}`,
+      Conditions: [['content-length-range', 0, 5 * 1024 * 1024]],
+      Fields: { success_action_status: '201' },
       Expires: 15 * 60,
     });
 
@@ -167,75 +155,58 @@ const getPresignedUrl = async (req, res) => {
   }
 };
 
+// GET AI RESPONSE
 const getAiResponse = async (prompt, senderId, conversationId) => {
-  var currentMessages = [];
-  const conv = await Conversation.findById(conversationId);
-  const botId = conv.members.find((member) => member != senderId);
-
-  const messagelist = await Message.find({
-    conversationId: conversationId,
-  })
-    .sort({ createdAt: -1 })
-    .limit(20);
-
-  messagelist.forEach((message) => {
-    if (message.senderId == senderId) {
-      currentMessages.push({
-        role: "user",
-        parts: message.text,
-      });
-    } else {
-      currentMessages.push({
-        role: "model",
-        parts: message.text,
-      });
-    }
-  });
-
-  // reverse currentMessages
-  currentMessages = currentMessages.reverse();
-
   try {
+    const conversation = await Conversation.findById(conversationId);
+    const botId = conversation.members.find(member => member != senderId);
+
+    if (!botId) throw new Error('No bot found in conversation');
+
+    const messages = await Message.find({ conversationId })
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    const chatHistory = messages.reverse().map(msg => ({
+      role: msg.senderId === senderId ? 'user' : 'assistant',
+      content: msg.text || '',
+    }));
+
     const chat = model.startChat({
-      history: currentMessages,
-      generationConfig: {
-        maxOutputTokens: 2000,
-      },
+      history: chatHistory,
+      generationConfig: { maxOutputTokens: 2000 },
     });
-
     const result = await chat.sendMessage(prompt);
-    const response = result.response;
-    var responseText = response.text();
+    const responseText =
+      result.response.text() || 'Woops!! ask me something shorter.';
 
-    if (responseText.length < 1) {
-      responseText = "Woops!! thats soo long ask me something in short.";
-      return -1;
-    }
-
+    // Save user message
     await Message.create({
-      conversationId: conversationId,
-      senderId: senderId,
+      conversationId,
+      senderId,
       text: prompt,
       seenBy: [{ user: botId, seenAt: new Date() }],
     });
 
+    // Save bot response
     const botMessage = await Message.create({
-      conversationId: conversationId,
+      conversationId,
       senderId: botId,
       text: responseText,
     });
 
-    conv.latestmessage = responseText;
-    await conv.save();
+    conversation.latestmessage = responseText;
+    await conversation.save();
 
     return botMessage;
   } catch (error) {
-    console.log(error.message);
-    return "some error occured while generating response";
+    console.error(error.message);
+    return { error: 'Failed to generate AI response' };
   }
 };
 
-const sendMessageHandler = async (data) => {
+// SEND MESSAGE HANDLER (Socket)
+const sendMessageHandler = async data => {
   const {
     text,
     imageUrl,
@@ -245,6 +216,7 @@ const sendMessageHandler = async (data) => {
     isReceiverInsideChatRoom,
   } = data;
   const conversation = await Conversation.findById(conversationId);
+
   if (!isReceiverInsideChatRoom) {
     const message = await Message.create({
       conversationId,
@@ -254,55 +226,38 @@ const sendMessageHandler = async (data) => {
       seenBy: [],
     });
 
-    // update conversation latest message and increment unread count of receiver by 1
     conversation.latestmessage = text;
-    conversation.unreadCounts.map((unread) => {
-      if (unread.userId.toString() == receiverId.toString()) {
-        unread.count += 1;
-      }
+    conversation.unreadCounts.forEach(unread => {
+      if (unread.userId.toString() === receiverId.toString()) unread.count += 1;
     });
     await conversation.save();
     return message;
   } else {
-    // create new message with seenby receiver
     const message = await Message.create({
       conversationId,
       senderId,
       text,
-      seenBy: [
-        {
-          user: receiverId,
-          seenAt: new Date(),
-        },
-      ],
+      seenBy: [{ user: receiverId, seenAt: new Date() }],
     });
+
     conversation.latestmessage = text;
     await conversation.save();
     return message;
   }
 };
 
-const deleteMessageHandler = async (data) => {
+// DELETE MESSAGE HANDLER (Socket)
+const deleteMessageHandler = async data => {
   const { messageId, deleteFrom } = data;
   const message = await Message.findById(messageId);
+  if (!message) return false;
 
-  if (!message) {
-    return false;
-  }
+  deleteFrom.forEach(userId => {
+    if (!message.deletedFrom.includes(userId)) message.deletedFrom.push(userId);
+  });
 
-  try {
-    deleteFrom.forEach(async (userId) => {
-      if (!message.deletedFrom.includes(userId)) {
-        message.deletedFrom.push(userId);
-      }
-    });
-    await message.save();
-
-    return true;
-  } catch (error) {
-    console.log(error.message);
-    return false;
-  }
+  await message.save();
+  return true;
 };
 
 module.exports = {
